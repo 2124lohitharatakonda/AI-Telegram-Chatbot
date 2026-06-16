@@ -1,0 +1,9 @@
+python-telegram-bot==20.7
+langchain==0.1.16
+langchain-community==0.0.38
+faiss-cpu==1.8.0
+scikit-learn==1.4.2
+numpy==1.26.4
+sentence-transformers==2.7.0
+transformers==4.40.2
+joblib==1.4.2

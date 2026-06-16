@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>NexBot — AI Telegram Chatbot Dashboard</title>
+  <style>
+    :root {
+      --bg: #0d1117; --surface: #161b22; --surface2: #21262d;
+      --border: #30363d; --accent: #2ea043; --accent2: #58a6ff;
+      --tg: #229ED9; --danger: #f85149; --warn: #d29922;
+      --text: #e6edf3; --muted: #8b949e;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'Segoe UI',system-ui,sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+
+    nav {
+      background:var(--surface); border-bottom:1px solid var(--border);
+      padding:0 28px; height:60px; display:flex; align-items:center; justify-content:space-between;
+      position:sticky; top:0; z-index:100;
+    }
+    .brand { display:flex; align-items:center; gap:10px; font-size:17px; font-weight:800; }
+    .brand-icon { width:34px; height:34px; background:var(--tg); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px; }
+    .nav-links { display:flex; gap:6px; }
+    .nl { padding:6px 14px; border-radius:6px; font-size:13px; color:var(--muted); cursor:pointer; transition:.2s; }
+    .nl:hover,.nl.active { background:var(--surface2); color:var(--text); }
+    .status-pill { display:flex; align-items:center; gap:6px; background:rgba(46,160,67,.15); border:1px solid rgba(46,160,67,.3); padding:5px 12px; border-radius:20px; font-size:12px; color:var(--accent); font-weight:600; }
+
+    .layout { display:grid; grid-template-columns:220px 1fr 320px; min-height:calc(100vh - 60px); }
+
+    aside { background:var(--surface); border-right:1px solid var(--border); padding:18px 12px; }
+    .sl { font-size:10px; text-transform:uppercase; letter-spacing:1px; color:var(--muted); padding:12px 10px 5px; }
+    .si { display:flex; align-items:center; gap:9px; padding:8px 10px; border-radius:6px; font-size:13px; color:var(--muted); cursor:pointer; transition:.2s; margin-bottom:1px; }
+    .si:hover { background:var(--surface2); color:var(--text); }
+    .si.active { background:rgba(34,158,217,.15); color:var(--tg); }
+    .si-badge { margin-left:auto; font-size:10px; font-weight:700; background:var(--tg); color:#fff; padding:2px 6px; border-radius:8px; }
+
+    main { padding:24px 28px; overflow-y:auto; }
+    .ph { margin-bottom:22px; }
+    .ph h1 { font-size:20px; font-weight:800; }
+    .ph p { color:var(--muted); font-size:13px; margin-top:3px; }
+
+    .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:22px; }
+    .sc { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:16px 18px; }
+    .sc-icon { font-size:20px; margin-bottom:8px; }
+    .sc-label { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; }
+    .sc-val { font-size:24px; font-weight:800; margin:3px 0; }
+    .sc-sub { font-size:11px; color:var(--muted); }
+    .pos { color:var(--accent); } .neg { color:var(--danger); }
+
+    .g2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; }
+
+    .card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:18px; }
+    .ch { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
+    .ct { font-size:14px; font-weight:700; }
+    .ca { font-size:11px; color:var(--accent2); cursor:pointer; }
+
+    /* INTENT TABLE */
+    table { width:100%; border-collapse:collapse; font-size:12px; }
+    th { text-align:left; padding:6px 10px; color:var(--muted); font-size:10px; text-transform:uppercase; letter-spacing:.4px; border-bottom:1px solid var(--border); }
+    td { padding:10px; border-bottom:1px solid var(--border); }
+    tr:last-child td { border:none; }
+    tr:hover td { background:var(--surface2); }
+
+    .chip { display:inline-block; font-size:10px; font-weight:700; padding:2px 8px; border-radius:12px; }
+    .chip-green { background:rgba(46,160,67,.15); color:var(--accent); }
+    .chip-blue { background:rgba(88,166,255,.15); color:var(--accent2); }
+    .chip-tg { background:rgba(34,158,217,.15); color:var(--tg); }
+    .chip-warn { background:rgba(210,153,34,.15); color:var(--warn); }
+
+    /* NLP PIPELINE */
+    .pipeline { display:flex; align-items:center; gap:0; overflow-x:auto; padding:4px 0; }
+    .pipe-step { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:10px 14px; text-align:center; min-width:90px; }
+    .pipe-step .ps-icon { font-size:18px; margin-bottom:4px; }
+    .pipe-step .ps-label { font-size:10px; color:var(--muted); }
+    .pipe-step .ps-name { font-size:11px; font-weight:700; margin-top:2px; }
+    .pipe-arrow { color:var(--muted); font-size:18px; padding:0 6px; flex-shrink:0; }
+
+    /* FAISS VIZ */
+    .faiss-grid { display:grid; grid-template-columns:repeat(6,1fr); gap:3px; }
+    .fv { height:28px; border-radius:3px; display:flex; align-items:center; justify-content:center; font-size:9px; color:#fff; font-weight:700; }
+
+    /* MODEL METRICS */
+    .mm-row { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+    .mm-label { font-size:11px; color:var(--muted); width:120px; flex-shrink:0; }
+    .mm-bar-wrap { flex:1; height:7px; background:var(--surface2); border-radius:4px; overflow:hidden; }
+    .mm-bar { height:100%; border-radius:4px; background:var(--tg); }
+    .mm-val { font-size:11px; font-weight:700; color:var(--tg); width:36px; text-align:right; }
+
+    /* CHAT PANEL */
+    .chat-panel { background:var(--surface); border-left:1px solid var(--border); display:flex; flex-direction:column; }
+    .chat-header { padding:16px 18px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:10px; }
+    .bot-avatar { width:36px; height:36px; border-radius:50%; background:var(--tg); display:flex; align-items:center; justify-content:center; font-size:18px; }
+    .bot-info .bn { font-size:14px; font-weight:700; }
+    .bot-info .bs { font-size:11px; color:var(--accent); }
+    .chat-messages { flex:1; padding:16px; overflow-y:auto; display:flex; flex-direction:column; gap:10px; max-height:calc(100vh - 200px); overflow-y:auto; }
+    .msg { max-width:85%; }
+    .msg.bot { align-self:flex-start; }
+    .msg.user { align-self:flex-end; }
+    .msg-bubble { padding:9px 13px; border-radius:12px; font-size:12px; line-height:1.5; }
+    .msg.bot .msg-bubble { background:var(--surface2); border:1px solid var(--border); border-radius:4px 12px 12px 12px; }
+    .msg.user .msg-bubble { background:var(--tg); color:#fff; border-radius:12px 4px 12px 12px; }
+    .msg-meta { font-size:10px; color:var(--muted); margin-top:3px; padding:0 4px; }
+    .msg.user .msg-meta { text-align:right; }
+    .intent-tag { display:inline-block; font-size:9px; background:rgba(46,160,67,.2); color:var(--accent); padding:2px 6px; border-radius:6px; margin-top:4px; }
+    .chat-input { padding:14px 16px; border-top:1px solid var(--border); display:flex; gap:8px; }
+    .chat-input input { flex:1; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 12px; color:var(--text); font-size:12px; outline:none; }
+    .chat-input button { background:var(--tg); border:none; border-radius:8px; padding:8px 14px; color:#fff; font-size:12px; cursor:pointer; font-weight:600; }
+
+    @keyframes pulse { 0%,100%{opacity:1}50%{opacity:.3} }
+    .pulse { animation:pulse 1.5s infinite; }
+
+    .bar-mini { display:flex; align-items:flex-end; gap:3px; height:50px; }
+    .bm { flex:1; border-radius:3px 3px 0 0; background:var(--tg); opacity:.7; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="brand"><div class="brand-icon">✈</div> NexBot Dashboard</div>
+  <div class="nav-links">
+    <div class="nl active">Overview</div>
+    <div class="nl">Conversations</div>
+    <div class="nl">Intents</div>
+    <div class="nl">FAISS Index</div>
+    <div class="nl">LangChain</div>
+    <div class="nl">Settings</div>
+  </div>
+  <div class="status-pill"><span class="pulse">●</span> Bot Online</div>
+</nav>
+
+<div class="layout">
+  <aside>
+    <div class="sl">Bot</div>
+    <div class="si active">📊 Dashboard</div>
+    <div class="si">💬 Live Chats <span class="si-badge">24</span></div>
+    <div class="si">🧠 NLP Engine</div>
+    <div class="sl">Knowledge</div>
+    <div class="si">📚 FAISS Index</div>
+    <div class="si">🔗 LangChain</div>
+    <div class="si">📄 Documents</div>
+    <div class="sl">Analytics</div>
+    <div class="si">📈 Intent Stats</div>
+    <div class="si">🗂️ Session Logs</div>
+    <div class="si">⚙️ Config</div>
+  </aside>
+
+  <main>
+    <div class="ph">
+      <h1>AI Telegram Chatbot — NexBot</h1>
+      <p>Multi-turn conversational AI · NLP Intent Classification · LangChain RAG · FAISS Vector Search</p>
+    </div>
+
+    <div class="stats">
+      <div class="sc">
+        <div class="sc-icon">💬</div>
+        <div class="sc-label">Total Messages</div>
+        <div class="sc-val">48,291</div>
+        <div class="sc-sub pos">↑ 12.4% today</div>
+      </div>
+      <div class="sc">
+        <div class="sc-icon">👥</div>
+        <div class="sc-label">Active Users</div>
+        <div class="sc-val">1,847</div>
+        <div class="sc-sub pos">↑ 234 new today</div>
+      </div>
+      <div class="sc">
+        <div class="sc-icon">🎯</div>
+        <div class="sc-label">Intent Accuracy</div>
+        <div class="sc-val">94.2%</div>
+        <div class="sc-sub pos">↑ 1.3% improved</div>
+      </div>
+      <div class="sc">
+        <div class="sc-icon">⚡</div>
+        <div class="sc-label">Avg Response Time</div>
+        <div class="sc-val">0.8s</div>
+        <div class="sc-sub pos">FAISS retrieval: 12ms</div>
+      </div>
+    </div>
+
+    <!-- NLP PIPELINE -->
+    <div class="card" style="margin-bottom:16px;">
+      <div class="ch"><div class="ct">🧠 NLP Processing Pipeline</div></div>
+      <div class="pipeline">
+        <div class="pipe-step"><div class="ps-icon">📨</div><div class="ps-label">Input</div><div class="ps-name">User Message</div></div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-step"><div class="ps-icon">🧹</div><div class="ps-label">Preprocess</div><div class="ps-name">Tokenize</div></div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-step"><div class="ps-icon">🔢</div><div class="ps-label">Embed</div><div class="ps-name">TF-IDF / BERT</div></div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-step"><div class="ps-icon">🎯</div><div class="ps-label">Classify</div><div class="ps-name">Intent NLP</div></div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-step"><div class="ps-icon">📚</div><div class="ps-label">Retrieve</div><div class="ps-name">FAISS RAG</div></div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-step"><div class="ps-icon">🔗</div><div class="ps-label">Generate</div><div class="ps-name">LangChain</div></div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-step"><div class="ps-icon">✈</div><div class="ps-label">Deliver</div><div class="ps-name">Telegram API</div></div>
+      </div>
+    </div>
+
+    <div class="g2">
+      <!-- INTENT TABLE -->
+      <div class="card">
+        <div class="ch"><div class="ct">🎯 Intent Classification</div><div class="ca">View All</div></div>
+        <table>
+          <thead><tr><th>Intent</th><th>Triggered</th><th>Accuracy</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td><strong>greet</strong></td><td>8,421</td><td><strong style="color:var(--accent)">98.1%</strong></td><td><span class="chip chip-green">Active</span></td></tr>
+            <tr><td><strong>faq_query</strong></td><td>12,340</td><td><strong style="color:var(--accent)">96.4%</strong></td><td><span class="chip chip-green">Active</span></td></tr>
+            <tr><td><strong>doc_search</strong></td><td>7,182</td><td><strong style="color:var(--tg)">94.7%</strong></td><td><span class="chip chip-tg">RAG</span></td></tr>
+            <tr><td><strong>small_talk</strong></td><td>5,640</td><td><strong style="color:var(--tg)">91.2%</strong></td><td><span class="chip chip-tg">Active</span></td></tr>
+            <tr><td><strong>escalate</strong></td><td>1,203</td><td><strong style="color:var(--warn)">88.4%</strong></td><td><span class="chip chip-warn">Review</span></td></tr>
+            <tr><td><strong>fallback</strong></td><td>892</td><td><strong style="color:var(--muted)">—</strong></td><td><span class="chip chip-blue">Default</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- NLP METRICS -->
+      <div class="card">
+        <div class="ch"><div class="ct">📊 NLP Model Metrics</div></div>
+        <div class="mm-row"><div class="mm-label">Intent Accuracy</div><div class="mm-bar-wrap"><div class="mm-bar" style="width:94.2%"></div></div><div class="mm-val">94.2%</div></div>
+        <div class="mm-row"><div class="mm-label">Entity F1</div><div class="mm-bar-wrap"><div class="mm-bar" style="width:91.8%"></div></div><div class="mm-val">91.8%</div></div>
+        <div class="mm-row"><div class="mm-label">Response Relevance</div><div class="mm-bar-wrap"><div class="mm-bar" style="width:89.3%"></div></div><div class="mm-val">89.3%</div></div>
+        <div class="mm-row"><div class="mm-label">FAISS Retrieval P@5</div><div class="mm-bar-wrap"><div class="mm-bar" style="width:96.1%"></div></div><div class="mm-val">96.1%</div></div>
+        <div class="mm-row"><div class="mm-label">Context Retention</div><div class="mm-bar-wrap"><div class="mm-bar" style="width:87.4%"></div></div><div class="mm-val">87.4%</div></div>
+
+        <div style="margin-top:16px;background:var(--surface2);border-radius:8px;padding:12px;">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">Message Volume — Last 7 Days</div>
+          <div class="bar-mini" id="bm"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FAISS INDEX -->
+    <div class="card">
+      <div class="ch"><div class="ct">📚 FAISS Vector Index — Document Embeddings</div><div class="ca">Rebuild Index</div></div>
+      <div style="display:flex;gap:20px;align-items:flex-start;">
+        <div style="flex:1;">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">768-dimensional embedding space (top-K similarity grid)</div>
+          <div class="faiss-grid" id="fg"></div>
+        </div>
+        <div style="width:200px;display:flex;flex-direction:column;gap:10px;">
+          <div style="background:var(--surface2);border-radius:8px;padding:12px;">
+            <div style="font-size:10px;color:var(--muted)">Total Vectors</div>
+            <div style="font-size:20px;font-weight:800;color:var(--tg)">24,183</div>
+          </div>
+          <div style="background:var(--surface2);border-radius:8px;padding:12px;">
+            <div style="font-size:10px;color:var(--muted)">Index Type</div>
+            <div style="font-size:14px;font-weight:700">IndexFlatL2</div>
+          </div>
+          <div style="background:var(--surface2);border-radius:8px;padding:12px;">
+            <div style="font-size:10px;color:var(--muted)">Avg Search Time</div>
+            <div style="font-size:14px;font-weight:700;color:var(--accent)">12ms</div>
+          </div>
+          <div style="background:var(--surface2);border-radius:8px;padding:12px;">
+            <div style="font-size:10px;color:var(--muted)">Documents Indexed</div>
+            <div style="font-size:14px;font-weight:700">1,847 chunks</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- CHAT PANEL -->
+  <div class="chat-panel">
+    <div class="chat-header">
+      <div class="bot-avatar">🤖</div>
+      <div class="bot-info"><div class="bn">NexBot</div><div class="bs">● Online · Multi-turn AI</div></div>
+    </div>
+    <div class="chat-messages">
+      <div class="msg bot"><div class="msg-bubble">👋 Hello! I'm NexBot. I can answer questions, search documents, and hold multi-turn conversations. How can I help?<div class="intent-tag">intent: greet</div></div><div class="msg-meta">09:00 AM · NexBot</div></div>
+      <div class="msg user"><div class="msg-bubble">What is the refund policy?</div><div class="msg-meta">09:01 AM · User</div></div>
+      <div class="msg bot"><div class="msg-bubble">Our refund policy allows returns within <strong>30 days</strong> of purchase. Items must be unused and in original packaging. Refunds are processed within 5–7 business days.<div class="intent-tag">intent: faq_query · FAISS: doc_003</div></div><div class="msg-meta">09:01 AM · NexBot · 0.7s</div></div>
+      <div class="msg user"><div class="msg-bubble">What if the item is damaged?</div><div class="msg-meta">09:02 AM · User</div></div>
+      <div class="msg bot"><div class="msg-bubble">If you received a damaged item, please contact support within <strong>48 hours</strong> with a photo of the damage. We'll issue an immediate replacement or full refund — no questions asked.<div class="intent-tag">intent: faq_query · context: [refund] retained</div></div><div class="msg-meta">09:02 AM · NexBot · 0.9s</div></div>
+      <div class="msg user"><div class="msg-bubble">Find the user manual for Model X200</div><div class="msg-meta">09:03 AM · User</div></div>
+      <div class="msg bot"><div class="msg-bubble">📄 Found <strong>3 relevant documents</strong> for "Model X200 user manual":<br/><br/>1. X200_User_Guide_v3.2.pdf — 98.4% match<br/>2. X200_QuickStart.pdf — 91.2% match<br/>3. X200_Safety_Manual.pdf — 87.1% match<div class="intent-tag">intent: doc_search · FAISS top-3 retrieved</div></div><div class="msg-meta">09:03 AM · NexBot · 1.1s</div></div>
+    </div>
+    <div class="chat-input">
+      <input type="text" placeholder="Type a message..." id="ci"/>
+      <button onclick="sendMsg()">Send</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // FAISS grid
+  const fg = document.getElementById('fg');
+  const cols = ['rgba(34,158,217,','rgba(46,160,67,','rgba(88,166,255,'];
+  for(let i=0;i<6*8;i++){
+    const d=document.createElement('div');
+    d.className='fv';
+    const c=cols[Math.floor(Math.random()*cols.length)];
+    const o=(Math.random()*0.7+0.2).toFixed(2);
+    d.style.background=c+o+')';
+    d.textContent=Math.random()>0.6?'●':'';
+    fg.appendChild(d);
+  }
+  // Bar mini
+  const bm=document.getElementById('bm');
+  [45,62,38,75,55,88,70].forEach(h=>{
+    const d=document.createElement('div');
+    d.className='bm';d.style.height=h+'%';
+    bm.appendChild(d);
+  });
+  // Chat send
+  function sendMsg(){
+    const ci=document.getElementById('ci');
+    if(!ci.value.trim())return;
+    const msgs=document.querySelector('.chat-messages');
+    const um=document.createElement('div');
+    um.className='msg user';
+    um.innerHTML=`<div class="msg-bubble">${ci.value}</div><div class="msg-meta">Now · User</div>`;
+    msgs.appendChild(um);
+    ci.value='';
+    setTimeout(()=>{
+      const bm=document.createElement('div');
+      bm.className='msg bot';
+      bm.innerHTML=`<div class="msg-bubble">I'm processing your request using NLP intent classification and FAISS document retrieval...<div class="intent-tag">intent: processing</div></div><div class="msg-meta">Now · NexBot · 0.8s</div>`;
+      msgs.appendChild(bm);
+      msgs.scrollTop=msgs.scrollHeight;
+    },800);
+    msgs.scrollTop=msgs.scrollHeight;
+  }
+  document.getElementById('ci').addEventListener('keydown',e=>{if(e.key==='Enter')sendMsg();});
+</script>
+</body>
+</html>
